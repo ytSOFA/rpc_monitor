@@ -11,11 +11,14 @@ const state = {
   apiBase: resolveApiBase(),
   intervalMinutes: null,
   timerId: null,
-  lastData: null
+  lastData: null,
+  lastRefreshAt: null,
+  nextRefreshAt: null,
+  isRefreshing: false
 };
 
 elements.refreshNow.addEventListener('click', () => {
-  refreshOnce();
+  refreshOnce({ force: true });
 });
 
 void init();
@@ -61,7 +64,14 @@ async function loadInterval() {
   }
 }
 
-async function refreshOnce() {
+async function refreshOnce(options = {}) {
+  if (state.isRefreshing) {
+    return;
+  }
+  if (!shouldRefreshNow(options)) {
+    return;
+  }
+  state.isRefreshing = true;
   elements.refreshNow.disabled = true;
 
   try {
@@ -77,7 +87,10 @@ async function refreshOnce() {
   } catch (error) {
     console.error('Status error:', formatError(error));
   } finally {
+    state.lastRefreshAt = Date.now();
+    state.nextRefreshAt = getNextRefreshAt(state.lastRefreshAt);
     elements.refreshNow.disabled = false;
+    state.isRefreshing = false;
   }
 }
 
@@ -92,6 +105,43 @@ function scheduleRefresh() {
     refreshOnce();
   }, state.intervalMinutes * 60 * 1000);
 }
+
+function getNextRefreshAt(lastRefreshAt) {
+  if (!state.intervalMinutes || !lastRefreshAt) {
+    return null;
+  }
+  return lastRefreshAt + state.intervalMinutes * 60 * 1000;
+}
+
+function shouldRefreshNow(options = {}) {
+  const { force = false } = options;
+  if (force) {
+    return true;
+  }
+  if (!state.intervalMinutes || !state.nextRefreshAt) {
+    return true;
+  }
+  return Date.now() >= state.nextRefreshAt;
+}
+
+function handleResume() {
+  if (!state.intervalMinutes) {
+    return;
+  }
+  if (!state.nextRefreshAt || Date.now() >= state.nextRefreshAt) {
+    refreshOnce();
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    handleResume();
+  }
+});
+
+window.addEventListener('focus', () => {
+  handleResume();
+});
 
 function render(data) {
   elements.charts.innerHTML = '';
