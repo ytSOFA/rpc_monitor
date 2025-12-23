@@ -9,6 +9,7 @@ CRON_EXPRESSION=*/10 * * * *
 MAX_ENTRIES=1008  #rpc_status.json每个节点数组的最大长度
 PORT=3000
 HOST=0.0.0.0
+LARK_WEBHOOK_URL=https://open.larksuite.com/open-apis/bot/v2/hook/...
 
 ### rpc节点的数据结构
 RPC_LIST_JSON是环境变量，json字符串，不要提交到github。示例为结构示意，实际 JSON 需双引号
@@ -53,6 +54,9 @@ RPC_LIST_JSON是环境变量，json字符串，不要提交到github。示例为
 - 记录秒级时间戳，作为这组数据的ts字段值，每次更新的数据有相同的时间戳。
 - 连接各rpc节点，串行调用getBlockNumber()，超时时间10秒，不重试。如果正常返回数据，则它的status为getBlockNumber()返回的blocknumber值；超时则status为timeout，否则status为报错信息截断前100个字符。
 - 数组中，新的数据放在后面，最多保存MAX_ENTRIES组数据，最早的数据被删除。
+- Lark报警功能：
+  - 当某个rpc节点对应的数组新增元素与上一个元素都非number，则用lark发送消息，内容包含：链、名称、rpc、报错信息。
+  - 示例：ArbSep lambda https://arb-sepolia.g.alchemy.com/v2/abc timeout
 
 ### api服务，使用express
 - /api/rpc/health 返回http状态码200，json格式

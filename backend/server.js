@@ -15,6 +15,7 @@ const MAX_ENTRIES = Number.parseInt(process.env.MAX_ENTRIES || '1008', 10);
 const RPC_LIST_JSON = process.env.RPC_LIST_JSON || '';
 const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
+const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || '';
 const DATA_FILE = path.join(__dirname, 'rpc_status.json');
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -105,6 +106,39 @@ function formatError(err) {
   return message.replace(/\s+/g, ' ').trim();
 }
 
+function isNumberStatus(status) {
+  return typeof status === 'number' && Number.isFinite(status);
+}
+
+async function sendLarkAlert(chain, node, status) {
+  if (!LARK_WEBHOOK_URL) {
+    return;
+  }
+  if (typeof fetch !== 'function') {
+    console.warn('fetch is not available; cannot send Lark alert.');
+    return;
+  }
+  const payload = {
+    msg_type: 'text',
+    content: {
+      text: `${chain} ${node.name}\n${node.rpc}\n${status}`,
+    },
+  };
+  try {
+    const res = await fetch(LARK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.warn(`Lark alert failed (${res.status}): ${body}`);
+    }
+  } catch (err) {
+    console.warn('Lark alert failed:', err.message || err);
+  }
+}
+
 const providerCache = new Map();
 function getProvider(rpcUrl) {
   if (!providerCache.has(rpcUrl)) {
@@ -141,6 +175,14 @@ async function checkRpcStatus() {
         }
 
         const list = getNodeArray(chain, node.name);
+        const prev = list.length > 0 ? list[list.length - 1] : null;
+        const prev2 = list.length > 1 ? list[list.length - 2] : null;
+        const currentError = !isNumberStatus(status);
+        const prevError = prev ? !isNumberStatus(prev.status) : false;
+        const prev2Error = prev2 ? !isNumberStatus(prev2.status) : false;
+        if (currentError && prevError && !prev2Error) {
+          await sendLarkAlert(chain, node, status);
+        }
         list.push({ ts, status });
         if (list.length > MAX_ENTRIES) {
           statusData[chain][node.name] = list.slice(-MAX_ENTRIES);
