@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RPC Monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background"></div>
+    <div class="page">
+      <header class="page-header">
+        <div class="header-top">
+          <div class="title-block">
+            <h1>SOFA RPC Monitor</h1>
+            <p class="subtitle">Block height snapshots across nodes.</p>
+          </div>
+          <div class="actions">
+            <button id="refresh-now" class="btn" type="button">Refresh Now</button>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="meta-item legend">
+            <span class="meta-label">Legend</span>
+            <div class="legend-items">
+              <span class="legend-item">
+                <span class="legend-swatch ok"></span>
+                OK
+              </span>
+              <span class="legend-item">
+                <span class="legend-swatch error"></span>
+                Error
+              </span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Refresh</span>
+            <strong id="refresh-interval" class="meta-value">-</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Last update</span>
+            <strong id="last-update" class="meta-value">-</strong>
+          </div>
+        </div>
+      </header>
+
+      <main id="charts" class="charts"></main>
+
+      <footer class="page-footer"></footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
