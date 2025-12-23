@@ -1,4 +1,4 @@
-# SOFA RPC Monitor
+# RPC Monitor
 
 监控多个 RPC 节点的可用性与区块高度，后端定时采样写入快照，前端以柱状图展示历史状态。具有lark报警功能。
 
